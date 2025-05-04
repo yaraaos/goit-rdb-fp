@@ -1,0 +1,90 @@
+Task 1
+create schema pandemic
+use pandemic
+
+Task 2
+DROP TABLE IF EXISTS entity;
+
+CREATE TABLE IF NOT EXISTS entity
+(id INT PRIMARY KEY auto_increment,
+title text, code text)
+---------------------------------------------------
+insert into entity (title, code) select distinct entity, code from infectious_cases;
+select * from entity
+---------------------------------------------------
+ALTER TABLE infectious_cases ADD COLUMN entity_id INT;
+---------------------------------------------------
+UPDATE infectious_cases AS ic
+LEFT JOIN entity AS e ON ic.entity = e.title
+SET ic.entity_id = e.id
+---------------------------------------------------
+ALTER TABLE infectious_cases 
+DROP COLUMN entity, 
+DROP COLUMN code;
+---------------------------------------------------
+ALTER TABLE infectious_cases 
+MODIFY COLUMN entity_id INT FIRST;
+---------------------------------------------------
+ALTER TABLE infectious_cases 
+ADD CONSTRAINT fk_entity
+FOREIGN KEY (entity_id) REFERENCES entity(id);
+
+Task 3
+UPDATE infectious_cases 
+SET Number_rabies = NULL
+WHERE Number_rabies = '';
+---------------------------------------------------
+ALTER TABLE infectious_cases 
+MODIFY COLUMN Number_rabies DOUBLE;
+---------------------------------------------------
+select e.id, e.title, e.code, avg(i.Number_rabies) as avg from entity e
+join infectious_cases i on i.entity_id=e.id
+GROUP BY e.id, e.title, e.code
+order by avg desc
+limit 10
+---------------------------------------------------
+select e.id, e.title, e.code, min(i.Number_rabies) as min from entity e
+join infectious_cases i on i.entity_id=e.id
+GROUP BY e.id, e.title, e.code
+order by min desc
+limit 10
+---------------------------------------------------
+select e.id, e.title, e.code, max(i.Number_rabies) as max from entity e
+join infectious_cases i on i.entity_id=e.id
+GROUP BY e.id, e.title, e.code
+order by max desc
+limit 10
+---------------------------------------------------
+select e.id, e.title, e.code, sum(i.Number_rabies) as sum from entity e
+join infectious_cases i on i.entity_id=e.id
+GROUP BY e.id, e.title, e.code
+order by sum desc
+limit 10
+
+Task 4
+select Year, str_to_date(CONCAT(Year, '-01-01'), '%Y-%m-%d') as date from infectious_cases
+---------------------------------------------------
+select Year, current_date() as 'current_date' from infectious_cases
+---------------------------------------------------
+select Year, str_to_date(CONCAT(Year, '-01-01'), '%Y-%m-%d') as date, 
+current_date() as 'current_date', 
+TIMESTAMPDIFF(year, STR_TO_DATE(CONCAT(Year, '-01-01'), '%Y-%m-%d'), CURRENT_DATE()) AS time_period
+from infectious_cases
+
+Task 5
+DROP FUNCTION IF EXISTS YearDifference;
+DELIMITER //
+CREATE FUNCTION YearDifference(year INT)
+RETURNS INT
+NO SQL
+BEGIN
+DECLARE result INT;
+SET result = TIMESTAMPDIFF(year, STR_TO_DATE(CONCAT(year, '-01-01'), '%Y-%m-%d'), CURRENT_DATE());
+RETURN result;
+END //
+DELIMITER ;
+---------------------------------------------------
+SELECT year, STR_TO_DATE(CONCAT(year, '-01-01'), '%Y-%m-%d') as date, 
+current_date() as 'current_date', 
+YearDifference(year) as year_difference
+from infectious_cases
